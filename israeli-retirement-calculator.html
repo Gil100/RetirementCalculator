@@ -722,7 +722,14 @@
 
         // Chart Section Component
         const ChartSection = ({ personalInfo, results, assumptions }) => {
+            const chartRef = React.useRef(null);
+            
             useEffect(() => {
+                // Destroy existing chart if it exists
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+                
                 // Create savings projection chart
                 const ctx = document.getElementById('savingsChart');
                 if (ctx && window.Chart) {
@@ -739,7 +746,7 @@
                         return monthlyContributions * 12 * yearsFromNow * (1 + assumptions.expectedReturn) ** yearsFromNow;
                     });
 
-                    new Chart(ctx, {
+                    chartRef.current = new Chart(ctx, {
                         type: 'line',
                         data: {
                             labels: years,
@@ -786,6 +793,13 @@
                         }
                     });
                 }
+                
+                // Cleanup function to destroy chart on unmount
+                return () => {
+                    if (chartRef.current) {
+                        chartRef.current.destroy();
+                    }
+                };
             }, [personalInfo, results, assumptions]);
 
             return (

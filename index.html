@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מחשבון פנסיה ישראלי - Israeli Retirement Calculator</title>
     
+    <!-- Inline SVG Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏦</text></svg>">
+    
     <!-- Google Fonts for Hebrew -->
     <link href="https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Open+Sans+Hebrew:wght@300;400;600;700&display=swap" rel="stylesheet">
     
@@ -722,7 +725,14 @@
 
         // Chart Section Component
         const ChartSection = ({ personalInfo, results, assumptions }) => {
+            const chartRef = React.useRef(null);
+            
             useEffect(() => {
+                // Destroy existing chart if it exists
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+                
                 // Create savings projection chart
                 const ctx = document.getElementById('savingsChart');
                 if (ctx && window.Chart) {
@@ -739,7 +749,7 @@
                         return monthlyContributions * 12 * yearsFromNow * (1 + assumptions.expectedReturn) ** yearsFromNow;
                     });
 
-                    new Chart(ctx, {
+                    chartRef.current = new Chart(ctx, {
                         type: 'line',
                         data: {
                             labels: years,
@@ -786,6 +796,13 @@
                         }
                     });
                 }
+                
+                // Cleanup function to destroy chart on unmount
+                return () => {
+                    if (chartRef.current) {
+                        chartRef.current.destroy();
+                    }
+                };
             }, [personalInfo, results, assumptions]);
 
             return (
