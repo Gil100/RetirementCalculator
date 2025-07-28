@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מחשבון פנסיה ישראלי - Israeli Retirement Calculator</title>
     
-    <!-- Inline SVG Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏦</text></svg>">
-    
     <!-- Google Fonts for Hebrew -->
     <link href="https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Open+Sans+Hebrew:wght@300;400;600;700&display=swap" rel="stylesheet">
     
@@ -338,19 +335,19 @@
             // State for form inputs with localStorage persistence
             const [personalInfo, setPersonalInfo] = useState(() => 
                 loadFromLocalStorage('personalInfo', {
-                    currentAge: 30,
-                    retirementAge: 67,
-                    monthlyIncome: 15000,
+                    currentAge: '',
+                    retirementAge: '',
+                    monthlyIncome: '',
                     gender: 'male'
                 })
             );
 
             const [currentSavings, setCurrentSavings] = useState(() =>
                 loadFromLocalStorage('currentSavings', {
-                    nationalInsurance: 50000,
-                    pensionFund: 100000,
-                    managerInsurance: 0,
-                    privateSavings: 20000
+                    nationalInsurance: '',
+                    pensionFund: '',
+                    managerInsurance: '',
+                    privateSavings: ''
                 })
             );
 
@@ -399,9 +396,15 @@
 
             // Main calculation logic
             const calculationResults = useMemo(() => {
-                const yearsToRetirement = personalInfo.retirementAge - personalInfo.currentAge;
+                // Convert string inputs to numbers, default to 0 if empty
+                const currentAge = Number(personalInfo.currentAge) || 0;
+                const retirementAge = Number(personalInfo.retirementAge) || 0;
+                const monthlyIncome = Number(personalInfo.monthlyIncome) || 0;
                 
-                if (yearsToRetirement <= 0) {
+                const yearsToRetirement = retirementAge - currentAge;
+                
+                // Return zeros if no valid input data
+                if (yearsToRetirement <= 0 || currentAge === 0 || retirementAge === 0) {
                     return {
                         totalAtRetirement: 0,
                         realValue: 0,
@@ -410,11 +413,11 @@
                     };
                 }
 
-                // Calculate total current savings
-                const totalCurrentSavings = Object.values(currentSavings).reduce((sum, value) => sum + value, 0);
+                // Calculate total current savings (convert strings to numbers)
+                const totalCurrentSavings = Object.values(currentSavings).reduce((sum, value) => sum + (Number(value) || 0), 0);
                 
-                // Calculate total monthly contributions
-                const totalMonthlyContributions = Object.values(contributions).reduce((sum, value) => sum + value, 0);
+                // Calculate total monthly contributions (convert strings to numbers)
+                const totalMonthlyContributions = Object.values(contributions).reduce((sum, value) => sum + (Number(value) || 0), 0);
 
                 // Calculate future value
                 const futureValue = calculateFutureValue(
@@ -428,15 +431,15 @@
                 const realValue = adjustForInflation(futureValue, assumptions.inflationRate, yearsToRetirement);
 
                 // Calculate monthly retirement income
-                const monthlyIncome = calculateMonthlyRetirementIncome(realValue, assumptions.withdrawalRate);
+                const monthlyRetirementIncome = calculateMonthlyRetirementIncome(realValue, assumptions.withdrawalRate);
 
                 // Calculate replacement ratio
-                const replacementRatio = calculateReplacementRatio(monthlyIncome, personalInfo.monthlyIncome);
+                const replacementRatio = calculateReplacementRatio(monthlyRetirementIncome, monthlyIncome);
 
                 return {
                     totalAtRetirement: futureValue,
                     realValue: realValue,
-                    monthlyIncome: monthlyIncome,
+                    monthlyIncome: monthlyRetirementIncome,
                     replacementRatio: replacementRatio
                 };
             }, [personalInfo, currentSavings, contributions, assumptions]);
