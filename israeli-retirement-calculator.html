@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מחשבון פנסיה ישראלי - Israeli Retirement Calculator</title>
+    
+    <!-- Google Fonts for Hebrew -->
+    <link href="https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Open+Sans+Hebrew:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React and Babel for JSX -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* RTL Hebrew CSS Framework */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            direction: rtl;
+            font-family: 'Open Sans Hebrew', 'Alef', Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-family: 'Alef', sans-serif;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        /* Main Content Layout */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        /* Form Styles */
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .form-section h3 {
+            font-family: 'Alef', sans-serif;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: right;
+            direction: rtl;
+            font-family: 'Open Sans Hebrew', sans-serif;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        /* Results Section */
+        .results-section {
+            padding: 25px;
+        }
+
+        .results-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .results-card h4 {
+            font-family: 'Alef', sans-serif;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .results-card .value {
+            font-size: 2.2em;
+            font-weight: bold;
+            font-family: 'Alef', sans-serif;
+        }
+
+        .results-card .subtitle {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .chart-container h4 {
+            font-family: 'Alef', sans-serif;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .form-group input, .form-group select {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+
+            .results-card .value {
+                font-size: 1.8em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .main-content {
+                padding: 15px;
+            }
+
+            .form-section, .results-section {
+                padding: 15px;
+            }
+        }
+
+        /* Hebrew Number Formatting */
+        .hebrew-number {
+            font-family: 'Alef', sans-serif;
+            direction: rtl;
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Accessibility Improvements */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* High Contrast Mode Support */
+        @media (prefers-contrast: high) {
+            .form-group input, .form-group select {
+                border-width: 3px;
+            }
+            
+            .results-card {
+                border: 2px solid #000;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Hebrew number formatting utility
+        const formatHebrewCurrency = (amount) => {
+            return new Intl.NumberFormat('he-IL', {
+                style: 'currency',
+                currency: 'ILS',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        };
+
+        const formatHebrewNumber = (number) => {
+            return new Intl.NumberFormat('he-IL').format(Math.round(number));
+        };
+
+        // Israeli pension calculation constants
+        const PENSION_RATES = {
+            employee_pension: 0.06,
+            employer_pension: 0.065,
+            manager_insurance_employee: 0.025,
+            manager_insurance_employer: 0.075,
+            national_insurance_rate: 0.12
+        };
+
+        // Financial calculation functions
+        const calculateFutureValue = (presentValue, monthlyContribution, annualRate, years) => {
+            if (annualRate === 0) {
+                return presentValue + (monthlyContribution * 12 * years);
+            }
+            
+            const monthlyRate = annualRate / 12;
+            const months = years * 12;
+            const fvPresent = presentValue * Math.pow(1 + monthlyRate, months);
+            const fvAnnuity = monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+            return fvPresent + fvAnnuity;
+        };
+
+        const adjustForInflation = (futureValue, inflationRate, years) => {
+            return futureValue / Math.pow(1 + inflationRate, years);
+        };
+
+        const calculateMonthlyRetirementIncome = (totalSavings, withdrawalRate = 0.04) => {
+            return (totalSavings * withdrawalRate) / 12;
+        };
+
+        const calculateReplacementRatio = (retirementIncome, preRetirementIncome) => {
+            return preRetirementIncome > 0 ? (retirementIncome / preRetirementIncome) * 100 : 0;
+        };
+
+        // localStorage utility functions
+        const saveToLocalStorage = (key, data) => {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+            }
+        };
+
+        const loadFromLocalStorage = (key, defaultValue) => {
+            try {
+                const stored = localStorage.getItem(key);
+                return stored ? JSON.parse(stored) : defaultValue;
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+                return defaultValue;
+            }
+        };
+
+        // Main App Component
+        const RetirementCalculatorApp = () => {
+            // State for form inputs with localStorage persistence
+            const [personalInfo, setPersonalInfo] = useState(() => 
+                loadFromLocalStorage('personalInfo', {
+                    currentAge: 30,
+                    retirementAge: 67,
+                    monthlyIncome: 15000,
+                    gender: 'male'
+                })
+            );
+
+            const [currentSavings, setCurrentSavings] = useState(() =>
+                loadFromLocalStorage('currentSavings', {
+                    nationalInsurance: 50000,
+                    pensionFund: 100000,
+                    managerInsurance: 0,
+                    privateSavings: 20000
+                })
+            );
+
+            const [contributions, setContributions] = useState(() =>
+                loadFromLocalStorage('contributions', {
+                    employeePension: 0,
+                    employerPension: 0,
+                    additionalSavings: 0
+                })
+            );
+
+            const [assumptions, setAssumptions] = useState(() =>
+                loadFromLocalStorage('assumptions', {
+                    expectedReturn: 0.05,
+                    inflationRate: 0.025,
+                    withdrawalRate: 0.04
+                })
+            );
+
+            // Save to localStorage whenever state changes
+            useEffect(() => {
+                saveToLocalStorage('personalInfo', personalInfo);
+            }, [personalInfo]);
+
+            useEffect(() => {
+                saveToLocalStorage('currentSavings', currentSavings);
+            }, [currentSavings]);
+
+            useEffect(() => {
+                saveToLocalStorage('contributions', contributions);
+            }, [contributions]);
+
+            useEffect(() => {
+                saveToLocalStorage('assumptions', assumptions);
+            }, [assumptions]);
+
+            // Calculate automatic pension contributions based on salary
+            useEffect(() => {
+                const monthlyIncome = personalInfo.monthlyIncome;
+                setContributions(prev => ({
+                    ...prev,
+                    employeePension: monthlyIncome * PENSION_RATES.employee_pension,
+                    employerPension: monthlyIncome * PENSION_RATES.employer_pension
+                }));
+            }, [personalInfo.monthlyIncome]);
+
+            // Main calculation logic
+            const calculationResults = useMemo(() => {
+                const yearsToRetirement = personalInfo.retirementAge - personalInfo.currentAge;
+                
+                if (yearsToRetirement <= 0) {
+                    return {
+                        totalAtRetirement: 0,
+                        realValue: 0,
+                        monthlyIncome: 0,
+                        replacementRatio: 0
+                    };
+                }
+
+                // Calculate total current savings
+                const totalCurrentSavings = Object.values(currentSavings).reduce((sum, value) => sum + value, 0);
+                
+                // Calculate total monthly contributions
+                const totalMonthlyContributions = Object.values(contributions).reduce((sum, value) => sum + value, 0);
+
+                // Calculate future value
+                const futureValue = calculateFutureValue(
+                    totalCurrentSavings,
+                    totalMonthlyContributions,
+                    assumptions.expectedReturn,
+                    yearsToRetirement
+                );
+
+                // Adjust for inflation
+                const realValue = adjustForInflation(futureValue, assumptions.inflationRate, yearsToRetirement);
+
+                // Calculate monthly retirement income
+                const monthlyIncome = calculateMonthlyRetirementIncome(realValue, assumptions.withdrawalRate);
+
+                // Calculate replacement ratio
+                const replacementRatio = calculateReplacementRatio(monthlyIncome, personalInfo.monthlyIncome);
+
+                return {
+                    totalAtRetirement: futureValue,
+                    realValue: realValue,
+                    monthlyIncome: monthlyIncome,
+                    replacementRatio: replacementRatio
+                };
+            }, [personalInfo, currentSavings, contributions, assumptions]);
+
+            return (
+                <div className="app-container">
+                    <header className="header">
+                        <h1>מחשבון פנסיה ישראלי</h1>
+                        <p>תכנון פרישה והשקעות לעתיד פיננסי בטוח</p>
+                    </header>
+
+                    <main className="main-content">
+                        <div className="inputs-section">
+                            <PersonalInfoForm 
+                                data={personalInfo} 
+                                onChange={setPersonalInfo} 
+                            />
+                            <CurrentSavingsForm 
+                                data={currentSavings} 
+                                onChange={setCurrentSavings} 
+                            />
+                            <ContributionsForm 
+                                data={contributions} 
+                                onChange={setContributions} 
+                            />
+                            <AssumptionsForm 
+                                data={assumptions} 
+                                onChange={setAssumptions} 
+                            />
+                        </div>
+
+                        <div className="results-section">
+                            <ResultsDisplay results={calculationResults} />
+                            <ChartSection 
+                                personalInfo={personalInfo}
+                                results={calculationResults}
+                                assumptions={assumptions}
+                            />
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        // Personal Information Form Component
+        const PersonalInfoForm = ({ data, onChange }) => {
+            const handleChange = (field, value) => {
+                onChange(prev => ({ ...prev, [field]: Number(value) || value }));
+            };
+
+            return (
+                <div className="form-section">
+                    <h3>פרטים אישיים</h3>
+                    <div className="form-group">
+                        <label htmlFor="currentAge">גיל נוכחי</label>
+                        <input
+                            type="number"
+                            id="currentAge"
+                            value={data.currentAge}
+                            onChange={(e) => handleChange('currentAge', e.target.value)}
+                            min="18"
+                            max="80"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="retirementAge">גיל פרישה מתוכנן</label>
+                        <input
+                            type="number"
+                            id="retirementAge"
+                            value={data.retirementAge}
+                            onChange={(e) => handleChange('retirementAge', e.target.value)}
+                            min="50"
+                            max="80"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="monthlyIncome">הכנסה חודשית נטו (₪)</label>
+                        <input
+                            type="number"
+                            id="monthlyIncome"
+                            value={data.monthlyIncome}
+                            onChange={(e) => handleChange('monthlyIncome', e.target.value)}
+                            min="0"
+                            step="100"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="gender">מין</label>
+                        <select
+                            id="gender"
+                            value={data.gender}
+                            onChange={(e) => handleChange('gender', e.target.value)}
+                        >
+                            <option value="male">זכר</option>
+                            <option value="female">נקבה</option>
+                        </select>
+                    </div>
+                </div>
+            );
+        };
+
+        // Current Savings Form Component
+        const CurrentSavingsForm = ({ data, onChange }) => {
+            const handleChange = (field, value) => {
+                onChange(prev => ({ ...prev, [field]: Number(value) || 0 }));
+            };
+
+            return (
+                <div className="form-section">
+                    <h3>חיסכון נוכחי</h3>
+                    <div className="form-group">
+                        <label htmlFor="nationalInsurance">ביטוח לאומי (₪)</label>
+                        <input
+                            type="number"
+                            id="nationalInsurance"
+                            value={data.nationalInsurance}
+                            onChange={(e) => handleChange('nationalInsurance', e.target.value)}
+                            min="0"
+                            step="1000"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="pensionFund">קרן פנסיה (₪)</label>
+                        <input
+                            type="number"
+                            id="pensionFund"
+                            value={data.pensionFund}
+                            onChange={(e) => handleChange('pensionFund', e.target.value)}
+                            min="0"
+                            step="1000"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="managerInsurance">ביטוח מנהלים (₪)</label>
+                        <input
+                            type="number"
+                            id="managerInsurance"
+                            value={data.managerInsurance}
+                            onChange={(e) => handleChange('managerInsurance', e.target.value)}
+                            min="0"
+                            step="1000"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="privateSavings">חיסכון פרטי (₪)</label>
+                        <input
+                            type="number"
+                            id="privateSavings"
+                            value={data.privateSavings}
+                            onChange={(e) => handleChange('privateSavings', e.target.value)}
+                            min="0"
+                            step="1000"
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        // Contributions Form Component
+        const ContributionsForm = ({ data, onChange }) => {
+            const handleChange = (field, value) => {
+                onChange(prev => ({ ...prev, [field]: Number(value) || 0 }));
+            };
+
+            return (
+                <div className="form-section">
+                    <h3>הפרשות חודשיות</h3>
+                    <div className="form-group">
+                        <label htmlFor="employeePension">הפרשת עובד לפנסיה (₪)</label>
+                        <input
+                            type="number"
+                            id="employeePension"
+                            value={Math.round(data.employeePension)}
+                            onChange={(e) => handleChange('employeePension', e.target.value)}
+                            min="0"
+                            step="10"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="employerPension">הפרשת מעביד לפנסיה (₪)</label>
+                        <input
+                            type="number"
+                            id="employerPension"
+                            value={Math.round(data.employerPension)}
+                            onChange={(e) => handleChange('employerPension', e.target.value)}
+                            min="0"
+                            step="10"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="additionalSavings">חיסכון נוסף (₪)</label>
+                        <input
+                            type="number"
+                            id="additionalSavings"
+                            value={data.additionalSavings}
+                            onChange={(e) => handleChange('additionalSavings', e.target.value)}
+                            min="0"
+                            step="100"
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        // Assumptions Form Component
+        const AssumptionsForm = ({ data, onChange }) => {
+            const handleChange = (field, value) => {
+                onChange(prev => ({ ...prev, [field]: Number(value) || 0 }));
+            };
+
+            return (
+                <div className="form-section">
+                    <h3>הנחות חישוב</h3>
+                    <div className="form-group">
+                        <label htmlFor="expectedReturn">תשואה שנתית צפויה (%)</label>
+                        <input
+                            type="number"
+                            id="expectedReturn"
+                            value={(data.expectedReturn * 100).toFixed(1)}
+                            onChange={(e) => handleChange('expectedReturn', e.target.value / 100)}
+                            min="0"
+                            max="20"
+                            step="0.1"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="inflationRate">שיעור אינפלציה (%)</label>
+                        <input
+                            type="number"
+                            id="inflationRate"
+                            value={(data.inflationRate * 100).toFixed(1)}
+                            onChange={(e) => handleChange('inflationRate', e.target.value / 100)}
+                            min="0"
+                            max="10"
+                            step="0.1"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="withdrawalRate">שיעור משיכה בפרישה (%)</label>
+                        <input
+                            type="number"
+                            id="withdrawalRate"
+                            value={(data.withdrawalRate * 100).toFixed(1)}
+                            onChange={(e) => handleChange('withdrawalRate', e.target.value / 100)}
+                            min="1"
+                            max="10"
+                            step="0.1"
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        // Results Display Component
+        const ResultsDisplay = ({ results }) => {
+            return (
+                <>
+                    <div className="results-card">
+                        <h4>סך הכל בפרישה</h4>
+                        <div className="value hebrew-number">
+                            {formatHebrewCurrency(results.totalAtRetirement)}
+                        </div>
+                        <div className="subtitle">ערך נומינלי</div>
+                    </div>
+
+                    <div className="results-card">
+                        <h4>ערך ריאלי (מותאם לאינפלציה)</h4>
+                        <div className="value hebrew-number">
+                            {formatHebrewCurrency(results.realValue)}
+                        </div>
+                        <div className="subtitle">כוח קנייה בערכי היום</div>
+                    </div>
+
+                    <div className="results-card">
+                        <h4>הכנסה חודשית בפרישה</h4>
+                        <div className="value hebrew-number">
+                            {formatHebrewCurrency(results.monthlyIncome)}
+                        </div>
+                        <div className="subtitle">
+                            יחס החלפה: {formatHebrewNumber(results.replacementRatio)}%
+                        </div>
+                    </div>
+                </>
+            );
+        };
+
+        // Chart Section Component
+        const ChartSection = ({ personalInfo, results, assumptions }) => {
+            useEffect(() => {
+                // Create savings projection chart
+                const ctx = document.getElementById('savingsChart');
+                if (ctx && window.Chart) {
+                    const yearsToRetirement = personalInfo.retirementAge - personalInfo.currentAge;
+                    const years = Array.from({ length: yearsToRetirement + 1 }, (_, i) => personalInfo.currentAge + i);
+                    
+                    // Calculate projected savings for each year
+                    const projectionData = years.map(year => {
+                        const yearsFromNow = year - personalInfo.currentAge;
+                        if (yearsFromNow === 0) return 0;
+                        
+                        // Simple projection calculation
+                        const monthlyContributions = 900 + 975; // Example values
+                        return monthlyContributions * 12 * yearsFromNow * (1 + assumptions.expectedReturn) ** yearsFromNow;
+                    });
+
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: years,
+                            datasets: [{
+                                label: 'חיסכון צפוי (₪)',
+                                data: projectionData,
+                                borderColor: '#4CAF50',
+                                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'תחזית חיסכון לפרישה',
+                                    font: {
+                                        family: 'Alef'
+                                    }
+                                },
+                                legend: {
+                                    rtl: true,
+                                    textDirection: 'rtl'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return formatHebrewCurrency(value);
+                                        }
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'גיל'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, [personalInfo, results, assumptions]);
+
+            return (
+                <div className="chart-container">
+                    <h4>תחזית חיסכון</h4>
+                    <canvas id="savingsChart" width="400" height="200"></canvas>
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<RetirementCalculatorApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
