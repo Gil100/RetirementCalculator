@@ -311,9 +311,21 @@
             return preRetirementIncome > 0 ? (retirementIncome / preRetirementIncome) * 100 : 0;
         };
 
-        // localStorage utility functions
+        // localStorage utility functions with version control
+        const STORAGE_VERSION = '1.1'; // Increment to clear old mock data
+        
+        const checkStorageVersion = () => {
+            const currentVersion = localStorage.getItem('storageVersion');
+            if (currentVersion !== STORAGE_VERSION) {
+                // Clear old data when version changes
+                localStorage.clear();
+                localStorage.setItem('storageVersion', STORAGE_VERSION);
+            }
+        };
+        
         const saveToLocalStorage = (key, data) => {
             try {
+                checkStorageVersion();
                 localStorage.setItem(key, JSON.stringify(data));
             } catch (error) {
                 console.error('Error saving to localStorage:', error);
@@ -322,6 +334,7 @@
 
         const loadFromLocalStorage = (key, defaultValue) => {
             try {
+                checkStorageVersion();
                 const stored = localStorage.getItem(key);
                 return stored ? JSON.parse(stored) : defaultValue;
             } catch (error) {
