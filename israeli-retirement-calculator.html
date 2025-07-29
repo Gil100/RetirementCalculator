@@ -330,12 +330,12 @@
         // Hebrew tooltip explanations for form fields
         const TOOLTIP_TEXTS = {
             currentAge: "הגיל שלך כיום, ישמש לחישוב שנות החיסכון עד הפרישה",
-            retirementAge: "הגיל בו אתה מתכנן לפרוש מהעבודה (בדרך כלל 67 לגברים, 62 לנשים)",
+            retirementAge: "הגיל בו אתה מתכנן לפרוש מהעבודה. ניתן לפרוש מגיל 60 לגברים ונשים (עם קיצוץ בקצבה) או בגיל הפרישה הסטנדרטי (67 לגברים, 62 לנשים)",
             monthlyIncome: "המשכורת החודשית שלך נטו (אחרי ניכויי מס וביטוח לאומי)",
             gender: "המין משפיע על גיל הפרישה הרגיל ועל תוחלת החיים בחישובים",
             nationalInsurance: "הערכת הזכויות שלך בביטוח לאומי - זה לא חיסכון אמיתי אלא זכות לגמלה חודשית עתידית מהמדינה (לא ניתן למשיכה מוקדמת)",
-            pensionFund: "סכום החיסכון הנוכחי בקרן הפנסיה שלך (קופת גמל לפנסיה)",
-            managerInsurance: "סכום החיסכון הנוכחי בביטוח מנהלים (אם יש לך)",
+            pensionFund: "סכום החיסכון הנוכחי בקרן הפנסיה שלך (קופת גמל לפנסיה) - זה חיסכון אמיתי שיומר לקצבה חודשית לפי מקדם ההמרה",
+            managerInsurance: "סכום החיסכון הנוכחי בביטוח מנהלים (אם יש לך) - גם זה חיסכון אמיתי שיומר לקצבה לפי מקדם ההמרה",
             kerenHishtalmut: "סכום החיסכון הנוכחי בקרן השתלמות - תוכנית חיסכון יחודית לישראל עם הטבות מס לאחר 6 שנים",
             privateSavings: "חיסכונות נוספים: חשבונות בנק, השקעות, ביטוח חיים ועוד",
             employeePension: "ההפרשה החודשית שלך לקרן פנסיה (6% מהמשכורת)",
@@ -345,7 +345,7 @@
             additionalSavings: "חיסכון חודשי נוסף שאתה מפריש מעבר להפרשות החובה",
             expectedReturn: "התשואה השנתית הצפויה על ההשקעות שלך (בדרך כלל 4-8%)",
             inflationRate: "שיעור הייקרות הצפוי (בישראל בדרך כלל 2-3% לשנה)",
-            withdrawalRate: "אחוז החיסכון שתמשוך מדי שנה בפרישה (כלל 4% מקובל)"
+            conversionInfo: "בישראל הקצבה מחושבת לפי מקדם המרה - לא אחוז משיכה קבוע. מקדם נמוך יותר = קצבה גבוהה יותר. ניתן לפרוש מגיל 60 לגברים ונשים"
         };
 
         // Hebrew number formatting utility
@@ -373,6 +373,15 @@
             national_insurance_rate: 0.12              // 12% national insurance
         };
 
+        // Israeli conversion coefficients by retirement age (מקדמי המרה)
+        // Lower coefficient = higher monthly payment
+        const CONVERSION_COEFFICIENTS = {
+            60: 280,  // Early retirement - lower monthly payment (penalty)
+            62: 240,  // Women's standard retirement age
+            65: 210,  // Common retirement age
+            67: 190   // Men's standard retirement age - higher monthly payment
+        };
+
         // Financial calculation functions
         const calculateFutureValue = (presentValue, monthlyContribution, annualRate, years) => {
             if (annualRate === 0) {
@@ -390,8 +399,14 @@
             return futureValue / Math.pow(1 + inflationRate, years);
         };
 
-        const calculateMonthlyRetirementIncome = (totalSavings, withdrawalRate = 0.04) => {
-            return (totalSavings * withdrawalRate) / 12;
+        // Calculate monthly pension using Israeli conversion coefficient system
+        const calculateMonthlyRetirementIncome = (totalSavings, retirementAge) => {
+            // Get conversion coefficient based on retirement age
+            const coefficient = CONVERSION_COEFFICIENTS[retirementAge] || 
+                               CONVERSION_COEFFICIENTS[67]; // Default to age 67
+            
+            // Israeli formula: Monthly Payment = Total Savings ÷ Conversion Coefficient
+            return totalSavings / coefficient;
         };
 
         const calculateReplacementRatio = (retirementIncome, preRetirementIncome) => {
@@ -466,7 +481,7 @@
                 loadFromLocalStorage('assumptions', {
                     expectedReturn: 0.05,
                     inflationRate: 0.025,
-                    withdrawalRate: 0.04
+                    // Removed withdrawalRate - using Israeli conversion coefficient system
                 })
             );
 
@@ -535,8 +550,8 @@
                 // Adjust for inflation
                 const realValue = adjustForInflation(futureValue, assumptions.inflationRate, yearsToRetirement);
 
-                // Calculate monthly retirement income
-                const monthlyRetirementIncome = calculateMonthlyRetirementIncome(realValue, assumptions.withdrawalRate);
+                // Calculate monthly retirement income using Israeli conversion coefficient
+                const monthlyRetirementIncome = calculateMonthlyRetirementIncome(realValue, retirementAge);
 
                 // Calculate replacement ratio
                 const replacementRatio = calculateReplacementRatio(monthlyRetirementIncome, monthlyIncome);
@@ -622,7 +637,7 @@
                             id="retirementAge"
                             value={data.retirementAge}
                             onChange={(e) => handleChange('retirementAge', e.target.value)}
-                            min="50"
+                            min="60"
                             max="80"
                         />
                     </div>
@@ -864,19 +879,17 @@
                         />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="withdrawalRate">
-                            שיעור משיכה בפרישה (%)
-                            <InfoTooltip text={TOOLTIP_TEXTS.withdrawalRate} />
+                        <label>
+                            מקדם המרה ישראלי
+                            <InfoTooltip text={TOOLTIP_TEXTS.conversionInfo} />
                         </label>
-                        <input
-                            type="number"
-                            id="withdrawalRate"
-                            value={(data.withdrawalRate * 100).toFixed(1)}
-                            onChange={(e) => handleChange('withdrawalRate', e.target.value / 100)}
-                            min="1"
-                            max="10"
-                            step="0.1"
-                        />
+                        <div style={{padding: '10px', backgroundColor: '#e8f5e8', borderRadius: '5px', fontSize: '0.9em'}}>
+                            <div>גיל 60: מקדם 280 (פרישה מוקדמת)</div>
+                            <div>גיל 62: מקדם 240 (נשים)</div>
+                            <div>גיל 65: מקדם 210</div>
+                            <div>גיל 67: מקדם 190 (גברים)</div>
+                            <div style={{marginTop: '5px', fontWeight: 'bold'}}>קצבה = סכום חיסכון ÷ מקדם</div>
+                        </div>
                     </div>
                 </div>
             );

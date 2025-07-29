@@ -40,7 +40,7 @@ The entire application is contained in `israeli-retirement-calculator.html` with
 - `PersonalInfoForm` - Age, income, gender inputs with Hebrew labels
 - `CurrentSavingsForm` - Existing pension fund, social security, private savings
 - `ContributionsForm` - Monthly contributions (auto-calculated from salary)
-- `AssumptionsForm` - Investment returns, inflation, withdrawal rates
+- `AssumptionsForm` - Investment returns and inflation assumptions
 - `ResultsDisplay` - Retirement projections with Hebrew currency formatting
 - `ChartSection` - Interactive Chart.js visualizations with Hebrew labels
 
@@ -59,6 +59,17 @@ const PENSION_RATES = {
     manager_insurance_employer: 0.075,  // 7.5% executive employer
     national_insurance_rate: 0.12       // 12% social security
 };
+
+// Israeli conversion coefficients by retirement age (מקדמי המרה)
+const CONVERSION_COEFFICIENTS = {
+    60: 280,  // Early retirement - lower monthly payment
+    62: 240,  // Women's standard retirement age
+    65: 210,  // Common retirement age
+    67: 190   // Men's standard retirement age - higher monthly payment
+};
+
+// Israeli pension calculation: Monthly Payment = Total Savings ÷ Conversion Coefficient
+const calculateMonthlyRetirementIncome = (totalSavings, retirementAge)
 
 // Future value formula: FV = PV × (1 + r)^n + PMT × [((1 + r)^n - 1) / r]
 const calculateFutureValue = (presentValue, monthlyContribution, annualRate, years)
@@ -86,7 +97,8 @@ const calculateFutureValue = (presentValue, monthlyContribution, annualRate, yea
 ### Financial Modeling
 - **Future Value**: Compound interest with regular contributions
 - **Inflation Adjustment**: Real purchasing power calculations
-- **Withdrawal Rate**: 4% rule with replacement ratio analysis
+- **Israeli Pension System**: Conversion coefficient calculation (Monthly Pension = Total Savings ÷ Age Coefficient)
+- **Early Retirement**: Available from age 60 with reduced benefits
 - **Interactive Charts**: Savings projections with Hebrew labels
 
 ## Development Guidelines
