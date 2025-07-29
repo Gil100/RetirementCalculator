@@ -95,10 +95,66 @@
         }
 
         .form-group label {
-            display: block;
+            display: flex;
+            align-items: center;
             margin-bottom: 5px;
             font-weight: 600;
             color: #555;
+        }
+
+        /* Tooltip System */
+        .info-tooltip {
+            position: relative;
+            display: inline-block;
+            margin-left: 8px;
+            cursor: help;
+        }
+
+        .info-icon {
+            width: 16px;
+            height: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            width: 250px;
+            font-size: 14px;
+            line-height: 1.4;
+            z-index: 1000;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #333;
+        }
+
+        .info-tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
         }
 
         .form-group input, .form-group select {
@@ -263,6 +319,35 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
+        // Tooltip component for field explanations
+        const InfoTooltip = ({ text }) => (
+            <div className="info-tooltip">
+                <div className="info-icon">i</div>
+                <div className="tooltip-content">{text}</div>
+            </div>
+        );
+
+        // Hebrew tooltip explanations for form fields
+        const TOOLTIP_TEXTS = {
+            currentAge: "הגיל שלך כיום, ישמש לחישוב שנות החיסכון עד הפרישה",
+            retirementAge: "הגיל בו אתה מתכנן לפרוש מהעבודה (בדרך כלל 67 לגברים, 62 לנשים)",
+            monthlyIncome: "המשכורת החודשית שלך נטו (אחרי ניכויי מס וביטוח לאומי)",
+            gender: "המין משפיע על גיל הפרישה הרגיל ועל תוחלת החיים בחישובים",
+            nationalInsurance: "סכום החיסכון הנוכחי בקרן ביטוח לאומי (זכויות שצברת)",
+            pensionFund: "סכום החיסכון הנוכחי בקרן הפנסיה שלך (קופת גמל לפנסיה)",
+            managerInsurance: "סכום החיסכון הנוכחי בביטוח מנהלים (אם יש לך)",
+            kerenHishtalmut: "סכום החיסכון הנוכחי בקרן השתלמות - תוכנית חיסכון יחודית לישראל עם הטבות מס לאחר 6 שנים",
+            privateSavings: "חיסכונות נוספים: חשבונות בנק, השקעות, ביטוח חיים ועוד",
+            employeePension: "ההפרשה החודשית שלך לקרן פנסיה (6% מהמשכורת)",
+            employerPension: "ההפרשה החודשית של המעביד לקרן הפנסיה שלך (6.5% מהמשכורת)",
+            employeeKerenHishtalmut: "ההפרשה החודשית שלך לקרן השתלמות (2.5% מהמשכורת)",
+            employerKerenHishtalmut: "ההפרשה החודשית של המעביד לקרן השתלמות שלך (7.5% מהמשכורת)",
+            additionalSavings: "חיסכון חודשי נוסף שאתה מפריש מעבר להפרשות החובה",
+            expectedReturn: "התשואה השנתית הצפויה על ההשקעות שלך (בדרך כלל 4-8%)",
+            inflationRate: "שיעור הייקרות הצפוי (בישראל בדרך כלל 2-3% לשנה)",
+            withdrawalRate: "אחוז החיסכון שתמשוך מדי שנה בפרישה (כלל 4% מקובל)"
+        };
+
         // Hebrew number formatting utility
         const formatHebrewCurrency = (amount) => {
             return new Intl.NumberFormat('he-IL', {
@@ -279,11 +364,13 @@
 
         // Israeli pension calculation constants
         const PENSION_RATES = {
-            employee_pension: 0.06,
-            employer_pension: 0.065,
-            manager_insurance_employee: 0.025,
-            manager_insurance_employer: 0.075,
-            national_insurance_rate: 0.12
+            employee_pension: 0.06,                    // 6% employee pension
+            employer_pension: 0.065,                   // 6.5% employer pension
+            manager_insurance_employee: 0.025,         // 2.5% manager insurance employee
+            manager_insurance_employer: 0.075,         // 7.5% manager insurance employer
+            keren_hishtalmut_employee: 0.025,          // 2.5% Keren Hishtalmut employee
+            keren_hishtalmut_employer: 0.075,          // 7.5% Keren Hishtalmut employer
+            national_insurance_rate: 0.12              // 12% national insurance
         };
 
         // Financial calculation functions
@@ -312,7 +399,7 @@
         };
 
         // localStorage utility functions with version control
-        const STORAGE_VERSION = '1.1'; // Increment to clear old mock data
+        const STORAGE_VERSION = '1.2'; // Added Keren Hishtalmut and tooltips
         
         const checkStorageVersion = () => {
             const currentVersion = localStorage.getItem('storageVersion');
@@ -360,6 +447,7 @@
                     nationalInsurance: '',
                     pensionFund: '',
                     managerInsurance: '',
+                    kerenHishtalmut: '',
                     privateSavings: ''
                 })
             );
@@ -368,6 +456,8 @@
                 loadFromLocalStorage('contributions', {
                     employeePension: 0,
                     employerPension: 0,
+                    employeeKerenHishtalmut: 0,
+                    employerKerenHishtalmut: 0,
                     additionalSavings: 0
                 })
             );
@@ -399,11 +489,13 @@
 
             // Calculate automatic pension contributions based on salary
             useEffect(() => {
-                const monthlyIncome = personalInfo.monthlyIncome;
+                const monthlyIncome = Number(personalInfo.monthlyIncome) || 0;
                 setContributions(prev => ({
                     ...prev,
                     employeePension: monthlyIncome * PENSION_RATES.employee_pension,
-                    employerPension: monthlyIncome * PENSION_RATES.employer_pension
+                    employerPension: monthlyIncome * PENSION_RATES.employer_pension,
+                    employeeKerenHishtalmut: monthlyIncome * PENSION_RATES.keren_hishtalmut_employee,
+                    employerKerenHishtalmut: monthlyIncome * PENSION_RATES.keren_hishtalmut_employer
                 }));
             }, [personalInfo.monthlyIncome]);
 
@@ -507,7 +599,10 @@
                 <div className="form-section">
                     <h3>פרטים אישיים</h3>
                     <div className="form-group">
-                        <label htmlFor="currentAge">גיל נוכחי</label>
+                        <label htmlFor="currentAge">
+                            גיל נוכחי
+                            <InfoTooltip text={TOOLTIP_TEXTS.currentAge} />
+                        </label>
                         <input
                             type="number"
                             id="currentAge"
@@ -529,7 +624,10 @@
                         />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="monthlyIncome">הכנסה חודשית נטו (₪)</label>
+                        <label htmlFor="monthlyIncome">
+                            הכנסה חודשית נטו (₪)
+                            <InfoTooltip text={TOOLTIP_TEXTS.monthlyIncome} />
+                        </label>
                         <input
                             type="number"
                             id="monthlyIncome"
@@ -597,6 +695,20 @@
                         />
                     </div>
                     <div className="form-group">
+                        <label htmlFor="kerenHishtalmut">
+                            קרן השתלמות (₪)
+                            <InfoTooltip text={TOOLTIP_TEXTS.kerenHishtalmut} />
+                        </label>
+                        <input
+                            type="number"
+                            id="kerenHishtalmut"
+                            value={data.kerenHishtalmut}
+                            onChange={(e) => handleChange('kerenHishtalmut', e.target.value)}
+                            min="0"
+                            step="1000"
+                        />
+                    </div>
+                    <div className="form-group">
                         <label htmlFor="privateSavings">חיסכון פרטי (₪)</label>
                         <input
                             type="number"
@@ -638,6 +750,28 @@
                             id="employerPension"
                             value={Math.round(data.employerPension)}
                             onChange={(e) => handleChange('employerPension', e.target.value)}
+                            min="0"
+                            step="10"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="employeeKerenHishtalmut">הפרשת עובד לקרן השתלמות (₪)</label>
+                        <input
+                            type="number"
+                            id="employeeKerenHishtalmut"
+                            value={Math.round(data.employeeKerenHishtalmut)}
+                            onChange={(e) => handleChange('employeeKerenHishtalmut', e.target.value)}
+                            min="0"
+                            step="10"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="employerKerenHishtalmut">הפרשת מעביד לקרן השתלמות (₪)</label>
+                        <input
+                            type="number"
+                            id="employerKerenHishtalmut"
+                            value={Math.round(data.employerKerenHishtalmut)}
+                            onChange={(e) => handleChange('employerKerenHishtalmut', e.target.value)}
                             min="0"
                             step="10"
                         />
